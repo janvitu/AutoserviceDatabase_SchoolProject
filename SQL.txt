@@ -1,0 +1,479 @@
+/*==============================================================*/
+/* DBMS name:      ORACLE Version 10g                           */
+/* Created on:     05.05.2018 13:55:19                          */
+/*==============================================================*/
+
+
+
+-- Type package declaration
+create or replace package PDTypes  
+as
+    TYPE ref_cursor IS REF CURSOR;
+end;
+
+-- Integrity package declaration
+create or replace package IntegrityPackage AS
+ procedure InitNestLevel;
+ function GetNestLevel return number;
+ procedure NextNestLevel;
+ procedure PreviousNestLevel;
+ end IntegrityPackage;
+/
+
+-- Integrity package definition
+create or replace package body IntegrityPackage AS
+ NestLevel number;
+
+-- Procedure to initialize the trigger nest level
+ procedure InitNestLevel is
+ begin
+ NestLevel := 0;
+ end;
+
+
+-- Function to return the trigger nest level
+ function GetNestLevel return number is
+ begin
+ if NestLevel is null then
+     NestLevel := 0;
+ end if;
+ return(NestLevel);
+ end;
+
+-- Procedure to increase the trigger nest level
+ procedure NextNestLevel is
+ begin
+ if NestLevel is null then
+     NestLevel := 0;
+ end if;
+ NestLevel := NestLevel + 1;
+ end;
+
+-- Procedure to decrease the trigger nest level
+ procedure PreviousNestLevel is
+ begin
+ NestLevel := NestLevel - 1;
+ end;
+
+ end IntegrityPackage;
+/
+
+
+drop trigger TRIG3
+/
+
+drop trigger TRIG5
+/
+
+drop trigger TRIG7
+/
+
+drop trigger TRIG1
+/
+
+drop trigger TRIG2
+/
+
+drop trigger TRIG6
+/
+
+alter table POSKYTOVANE_SLUZBY
+   drop constraint FK_ZAKAZKA_POSKYTOVANA_SLUZBA
+/
+
+alter table POSKYTOVANE_SLUZBY
+   drop constraint FK_SLUZBA_POSKYTOVANA_SLUZBA
+/
+
+alter table ZAKAZKA
+   drop constraint KDE_VYHOTOVENA_ZAKAZKA
+/
+
+alter table ZAKAZKA
+   drop constraint FK_ZAKAZKA_POSKYT_SL_ZAKAZNIK
+/
+
+alter table ZAMESTNANEC
+   drop constraint ZAMESTNANEC_NA_POBOCKA
+/
+
+drop index EMAIL_POB
+/
+
+drop index TEL_POB
+/
+
+drop table POBOCKA cascade constraints
+/
+
+drop index POSKYTOVANE_SLUZBY2_FK
+/
+
+drop index POSKYTOVANE_SLUZBY_FK
+/
+
+drop table POSKYTOVANE_SLUZBY cascade constraints
+/
+
+drop table SLUZBA cascade constraints
+/
+
+drop index POSKYTNUTE_SLUZBY_FK
+/
+
+drop index KDE_VYHOTOVENA_ZAKAZKA_FK
+/
+
+drop table ZAKAZKA cascade constraints
+/
+
+drop index NAZEV_FIRMA
+/
+
+drop index EMAIL_ZAK
+/
+
+drop index TEL_ZAK
+/
+
+drop index COP_ZAK
+/
+
+drop table ZAKAZNIK cascade constraints
+/
+
+drop index EMAIL_ZAM
+/
+
+drop index TEL_ZAM
+/
+
+drop index COP_ZAM
+/
+
+drop index ZAMESTNANY_FK
+/
+
+drop table ZAMESTNANEC cascade constraints
+/
+
+/*==============================================================*/
+/* Table: POBOCKA                                               */
+/*==============================================================*/
+create table POBOCKA  (
+   ID_POBOCKA           CHAR(10)                        not null
+      constraint CKC_ID_POBOCKA_POBOCKA check (regexp_like (ID_POBOCKA, '^[0-9]{10}$')),
+   CP                   NUMBER(6)                       not null
+      constraint CKC_CP_POBOCKA check (regexp_like (CP, '^[0-9]+$')),
+   ULICE                VARCHAR2(50)                    not null,
+   MESTO                VARCHAR2(50)                    not null,
+   TEL_POB              CHAR(9)                         not null
+      constraint CKC_TEL_POB_POBOCKA check (TEL_POB >= '0' and regexp_like (TEL_POB, '^[0-9]{9}')),
+   EMAIL_POB            VARCHAR2(70)                    not null,
+   ZRUSENA              CHAR(1)                        default 'N' not null
+      constraint CKC_ZRUSENA_POBOCKA check (ZRUSENA in ('A','N')),
+   constraint PK_POBOCKA primary key (ID_POBOCKA)
+)
+/
+
+/*==============================================================*/
+/* Index: TEL_POB                                               */
+/*==============================================================*/
+create unique index TEL_POB on POBOCKA (
+   TEL_POB ASC
+)
+/
+
+/*==============================================================*/
+/* Index: EMAIL_POB                                             */
+/*==============================================================*/
+create unique index EMAIL_POB on POBOCKA (
+   EMAIL_POB ASC
+)
+/
+
+/*==============================================================*/
+/* Table: POSKYTOVANE_SLUZBY                                    */
+/*==============================================================*/
+create table POSKYTOVANE_SLUZBY  (
+   ID_ZAKAZKA           CHAR(10)                        not null
+      constraint CKC_ID_ZAKAZKA_POSKYTOV check (regexp_like (ID_ZAKAZKA, '^[0-9]{10}$')),
+   ID_SLUZBA            CHAR(10)                        not null
+      constraint CKC_ID_SLUZBA_POSKYTOV check (regexp_like (ID_SLUZBA, '^[0-9]{10}$')),
+   constraint PK_POSKYTOVANE_SLUZBY primary key (ID_ZAKAZKA, ID_SLUZBA)
+)
+/
+
+/*==============================================================*/
+/* Index: POSKYTOVANE_SLUZBY_FK                                 */
+/*==============================================================*/
+create index POSKYTOVANE_SLUZBY_FK on POSKYTOVANE_SLUZBY (
+   ID_ZAKAZKA ASC
+)
+/
+
+/*==============================================================*/
+/* Index: POSKYTOVANE_SLUZBY2_FK                                */
+/*==============================================================*/
+create index POSKYTOVANE_SLUZBY2_FK on POSKYTOVANE_SLUZBY (
+   ID_SLUZBA ASC
+)
+/
+
+/*==============================================================*/
+/* Table: SLUZBA                                                */
+/*==============================================================*/
+create table SLUZBA  (
+   ID_SLUZBA            CHAR(10)                        not null
+      constraint CKC_ID_SLUZBA_SLUZBA check (regexp_like (ID_SLUZBA, '^[0-9]{10}$')),
+   CENA_SLUZBA_KC       VARCHAR2(8)                     not null
+      constraint CKC_CENA_SLUZBA_KC_SLUZBA check (regexp_like (CENA_SLUZBA_KC, '^[0-9]+$')),
+   POPIS_SLUZBA         VARCHAR2(256)                   not null,
+   VYRAZENO             CHAR(1)                        default 'N' not null
+      constraint CKC_VYRAZENO_SLUZBA check (VYRAZENO in ('A','N')),
+   constraint PK_SLUZBA primary key (ID_SLUZBA)
+)
+/
+
+/*==============================================================*/
+/* Table: ZAKAZKA                                               */
+/*==============================================================*/
+create table ZAKAZKA  (
+   ID_ZAKAZKA           CHAR(10)                        not null
+      constraint CKC_ID_ZAKAZKA_ZAKAZKA check (regexp_like (ID_ZAKAZKA, '^[0-9]{10}$')),
+   ID_POBOCKA           CHAR(10)                        not null,
+   ID_ZAK               CHAR(10)                        not null,
+   DOB_TRV              VARCHAR2(3)                     not null,
+   DAT_PRIJETI          DATE                            not null
+      constraint CKC_DAT_PRIJETI_ZAKAZKA check (DAT_PRIJETI >= '01-MAR-2013'),
+   PRACE_TECHNIKA_KC    VARCHAR2(8)                     not null,
+   constraint PK_ZAKAZKA primary key (ID_ZAKAZKA)
+)
+/
+
+/*==============================================================*/
+/* Index: KDE_VYHOTOVENA_ZAKAZKA_FK                             */
+/*==============================================================*/
+create index KDE_VYHOTOVENA_ZAKAZKA_FK on ZAKAZKA (
+   ID_POBOCKA ASC
+)
+/
+
+/*==============================================================*/
+/* Index: POSKYTNUTE_SLUZBY_FK                                  */
+/*==============================================================*/
+create index POSKYTNUTE_SLUZBY_FK on ZAKAZKA (
+   ID_ZAK ASC
+)
+/
+
+/*==============================================================*/
+/* Table: ZAKAZNIK                                              */
+/*==============================================================*/
+create table ZAKAZNIK  (
+   ID_ZAK               CHAR(10)                        not null
+      constraint CKC_ID_ZAK_ZAKAZNIK check (regexp_like (ID_ZAK, '^[0-9]{10}$')),
+   COP_ZAK              CHAR(9)                         not null
+      constraint CKC_COP_ZAK_ZAKAZNIK check (COP_ZAK >= '0' and regexp_like (COP_ZAK, '^[0-9]{9}$')),
+   TEL_ZAK              CHAR(9)                         not null
+      constraint CKC_TEL_ZAK_ZAKAZNIK check (TEL_ZAK >= '0' and regexp_like (TEL_ZAK, '^[0-9]{9}$')),
+   EMAIL_ZAK            VARCHAR2(70)                    not null,
+   FIRMA                CHAR(1)                        default 'N' not null
+      constraint CKC_FIRMA_ZAKAZNIK check (FIRMA in ('A','N')),
+   NAZEV_FIRMA          VARCHAR2(256),
+   constraint PK_ZAKAZNIK primary key (ID_ZAK)
+)
+/
+
+/*==============================================================*/
+/* Index: COP_ZAK                                               */
+/*==============================================================*/
+create unique index COP_ZAK on ZAKAZNIK (
+   COP_ZAK ASC
+)
+/
+
+/*==============================================================*/
+/* Index: TEL_ZAK                                               */
+/*==============================================================*/
+create unique index TEL_ZAK on ZAKAZNIK (
+   TEL_ZAK ASC
+)
+/
+
+/*==============================================================*/
+/* Index: EMAIL_ZAK                                             */
+/*==============================================================*/
+create unique index EMAIL_ZAK on ZAKAZNIK (
+   EMAIL_ZAK ASC
+)
+/
+
+/*==============================================================*/
+/* Index: NAZEV_FIRMA                                           */
+/*==============================================================*/
+create unique index NAZEV_FIRMA on ZAKAZNIK (
+   NAZEV_FIRMA ASC
+)
+/
+
+/*==============================================================*/
+/* Table: ZAMESTNANEC                                           */
+/*==============================================================*/
+create table ZAMESTNANEC  (
+   ID_ZAM               CHAR(10)                        not null
+      constraint CKC_ID_ZAM_ZAMESTNA check (regexp_like (ID_ZAM, '^[0-9]{10}$')),
+   ID_POBOCKA           CHAR(10)                        not null
+      constraint CKC_ID_POBOCKA_ZAMESTNA check (regexp_like (ID_POBOCKA, '^[0-9]{10}$')),
+   JMENO                VARCHAR2(50)                    not null,
+   PRIJMENI             VARCHAR2(50)                    not null,
+   COP_ZAM              CHAR(9)                         not null
+      constraint CKC_COP_ZAM_ZAMESTNA check (regexp_like (COP_ZAM, '^[0-9]{9}$')),
+   EMAIL_ZAM            VARCHAR2(70),
+   TEL_ZAM              CHAR(9)                         not null
+      constraint CKC_TEL_ZAM_ZAMESTNA check (regexp_like (TEL_ZAM, '^[0-9]{9}$')),
+   ZAMESTNANY           CHAR(1)                        default 'A' not null
+      constraint CKC_ZAMESTNANY_ZAMESTNA check (ZAMESTNANY in ('A','N')),
+   constraint PK_ZAMESTNANEC primary key (ID_ZAM)
+)
+/
+
+/*==============================================================*/
+/* Index: ZAMESTNANY_FK                                         */
+/*==============================================================*/
+create index ZAMESTNANY_FK on ZAMESTNANEC (
+   ID_POBOCKA ASC
+)
+/
+
+/*==============================================================*/
+/* Index: COP_ZAM                                               */
+/*==============================================================*/
+create unique index COP_ZAM on ZAMESTNANEC (
+   COP_ZAM ASC
+)
+/
+
+/*==============================================================*/
+/* Index: TEL_ZAM                                               */
+/*==============================================================*/
+create unique index TEL_ZAM on ZAMESTNANEC (
+   TEL_ZAM ASC
+)
+/
+
+/*==============================================================*/
+/* Index: EMAIL_ZAM                                             */
+/*==============================================================*/
+create unique index EMAIL_ZAM on ZAMESTNANEC (
+   EMAIL_ZAM ASC
+)
+/
+
+alter table POSKYTOVANE_SLUZBY
+   add constraint FK_ZAKAZKA_POSKYTOVANA_SLUZBA foreign key (ID_ZAKAZKA)
+      references ZAKAZKA (ID_ZAKAZKA)
+/
+
+alter table POSKYTOVANE_SLUZBY
+   add constraint FK_SLUZBA_POSKYTOVANA_SLUZBA foreign key (ID_SLUZBA)
+      references SLUZBA (ID_SLUZBA)
+/
+
+alter table ZAKAZKA
+   add constraint KDE_VYHOTOVENA_ZAKAZKA foreign key (ID_POBOCKA)
+      references POBOCKA (ID_POBOCKA)
+/
+
+alter table ZAKAZKA
+   add constraint FK_ZAKAZKA_POSKYT_SL_ZAKAZNIK foreign key (ID_ZAK)
+      references ZAKAZNIK (ID_ZAK)
+/
+
+alter table ZAMESTNANEC
+   add constraint ZAMESTNANEC_NA_POBOCKA foreign key (ID_POBOCKA)
+      references POBOCKA (ID_POBOCKA)
+/
+
+
+create or replace TRIGGER TRIG3 
+BEFORE INSERT OR UPDATE ON POSKYTOVANE_SLUZBY
+FOR EACH ROW
+DECLARE
+SluzbaVYR CHAR(1);
+BEGIN
+    SELECT SLUZBA."VYRAZENO" into SluzbaVYR
+    FROM SLUZBA
+    WHERE SLUZBA."ID_SLUZBA"=:new."ID_SLUZBA";
+    IF(SluzbaVYR='A')THEN
+    RAISE_APPLICATION_ERROR(-20000,'Nelze poskytovat vyrazenou sluzbu');
+    END IF;
+END;
+/
+
+
+create or replace TRIGGER TRIG5 
+BEFORE INSERT OR UPDATE ON ZAKAZKA
+FOR EACH ROW
+DECLARE
+PobockaZRUS CHAR(1);
+BEGIN
+    SELECT POBOCKA."ZRUSENA" into PobockaZRUS
+    FROM POBOCKA
+    WHERE POBOCKA."ID_POBOCKA"=:new."ID_POBOCKA";
+    IF(PobockaZRUS='A')THEN
+    RAISE_APPLICATION_ERROR(-20000,'Nelze provést službu na zrušené poboèce');
+    END IF;
+END;
+/
+
+
+create or replace TRIGGER TRIG7
+  BEFORE INSERT OR UPDATE ON ZAKAZKA
+  FOR EACH ROW
+BEGIN
+  IF( :new.DAT_PRIJETI > sysdate )
+  THEN
+    RAISE_APPLICATION_ERROR( -20001, 'Nelze zadat budoucí den' );
+  END IF;
+END;
+/
+
+
+create or replace TRIGGER TRIG1
+BEFORE INSERT OR UPDATE ON ZAKAZNIK 
+FOR EACH ROW
+BEGIN
+    IF(:new.FIRMA='A' and :new.NAZEV_FIRMA is NULL) THEN
+    RAISE_APPLICATION_ERROR(-20000, 'Pro firmu musí být vyplnìný název');
+    END IF;
+END;
+/
+
+
+create or replace TRIGGER TRIG2 
+BEFORE UPDATE OR INSERT ON ZAKAZNIK 
+FOR EACH ROW
+BEGIN
+    IF(:new.FIRMA='N' AND :new.NAZEV_FIRMA IS NOT NULL) THEN
+    RAISE_APPLICATION_ERROR(-20000, 'Èlovìk co nezastupuje firmu nemùže mít vyplnìné pole název firmy');
+    END IF;
+END;
+/
+
+
+create or replace TRIGGER TRIG6
+BEFORE INSERT OR UPDATE ON ZAMESTNANEC
+FOR EACH ROW
+DECLARE
+PobockaCIS CHAR(1);
+BEGIN
+    SELECT ZRUSENA into PobockaCIS
+    FROM POBOCKA
+    WHERE POBOCKA."ID_POBOCKA"=:new."ID_POBOCKA";
+    IF(PobockaCIS='A') THEN
+    RAISE_APPLICATION_ERROR(-20000,'Nelze zamìstnan zamìstnance na zrušené poboèce');
+    END IF;
+END;
+/
+
